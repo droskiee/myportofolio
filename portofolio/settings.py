@@ -36,7 +36,7 @@ SECRET_KEY = 'django-insecure-k0r_i)(iiz22gh*cp92qv40$y*o*fvk!6jr6vm7433-o(e+m02
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "<URL deployment PWS kamu>"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "piedra-ridwan-myportofolio.pws.cs.ui.ac.id"]
 
 
 # Application definition
