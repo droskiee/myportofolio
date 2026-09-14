@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skills - Portfolio</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <a href="{% url 'main:show_skills' %}">Skills</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 40px;">
+        <h2>My Skills</h2>
+        {% if skills_list %}
+            <ul>
+                {% for skill in skills_list %}
+                    <li><strong>{{ skill.name }}</strong> ({{ skill.get_category_display }}) - Level: {{ skill.proficiency_level }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Belum ada data skill yang ditambahkan.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

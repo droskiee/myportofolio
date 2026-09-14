@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience
+from main.models import Experience, Skill
 
 
 class MainTest(TestCase):
@@ -12,6 +12,11 @@ class MainTest(TestCase):
             description="Membantu mahasiswa memahami pengembangan web.",
             category="part-time",
         )
+        self.skill = Skill.objects.create(
+            name="Python",
+            category="language",
+            proficiency_level=90,
+        )
 
     def test_main_url_is_accessible(self):
         response = self.client.get(reverse("main:show_main"))
@@ -20,6 +25,7 @@ class MainTest(TestCase):
         self.assertTemplateUsed(response, "index.html")
         self.assertNotContains(response, self.experience.title)
         self.assertContains(response, f'href="{reverse("main:show_experience")}"')
+        self.assertContains(response, f'href="{reverse("main:show_skills")}"')
 
     def test_nonexistent_page_returns_404(self):
         response = self.client.get("/halaman-yang-tidak-ada/")
@@ -56,3 +62,23 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+
+    def test_skill_model(self):
+        self.assertEqual(str(self.skill), "Python")
+        self.assertEqual(self.skill.category, "language")
+        self.assertEqual(self.skill.proficiency_level, 90)
+
+    def test_skills_page(self):
+        response = self.client.get(reverse("main:show_skills"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "skills.html")
+        self.assertContains(response, self.skill.name)
+        self.assertContains(response, "90")
+        self.assertContains(response, f'href="{reverse("main:show_main")}"')
+
+    def test_empty_skills_page(self):
+        Skill.objects.all().delete()
+        response = self.client.get(reverse("main:show_skills"))
+
+        self.assertContains(response, "Belum ada data skill yang ditambahkan.")
