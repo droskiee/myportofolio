@@ -9,6 +9,10 @@ from main.views import (
     show_projects,
     get_projects_json,
     delete_project,
+    show_experience_json,
+    add_experience,
+    edit_experience,
+    delete_experience,
 )
 
 app_name = "main"
@@ -20,5 +24,9 @@ urlpatterns = [
     path("projects/", show_projects, name="show_projects"),
     path("projects/add/", create_project, name="create_project"),
     path("api/projects/", get_projects_json, name="get_projects_json"),
-     path("projects/<uuid:project_id>/delete/", delete_project, name="delete_project"),
+    path("projects/<uuid:project_id>/delete/", delete_project, name="delete_project"),
+    path("experience/json/", show_experience_json, name="show_experience_json"),
+    path("experience/add/", add_experience, name="add_experience"),
+    path("experience/edit/<uuid:id>/", edit_experience, name="edit_experience"),
+    path("experience/delete/<uuid:id>/", delete_experience, name="delete_experience"),
 ]

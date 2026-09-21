@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block meta %}
+    <title>Tambah Experience - {{ name }}</title>
+{% endblock meta %}
+
+{% block content %}
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h2 class="text-center mb-4">Tambah Pengalaman Baru</h2>
+                        
+                        <form method="POST">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary">Simpan Pengalaman</button>
+                                <a href="{% url 'main:show_experience' %}" class="btn btn-secondary">Batal</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock content %}

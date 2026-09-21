@@ -1,6 +1,5 @@
-from django.forms import ModelForm, TextInput, Textarea, URLInput
-
-from main.models import Project
+from django.forms import ModelForm, TextInput, Textarea, URLInput, Select, DateTimeInput
+from main.models import Project, Experience
 
 class ProjectForm(ModelForm):
     class Meta:
@@ -47,6 +46,59 @@ class ProjectForm(ModelForm):
             "project_image_url": URLInput(
                 attrs={
                     "placeholder": "https://drive.google.com/thumbnail?id=...&sz=w1000",
+                }
+            ),
+        }
+
+class ExperienceForm(ModelForm):
+    class Meta:
+        model = Experience
+        fields = [
+            "title",
+            "description",
+            "category",
+            "thumbnail",
+            "ended_at",
+        ]
+
+        labels = {
+            "title": "Posisi / Peran",
+            "description": "Deskripsi Pekerjaan",
+            "category": "Kategori Pengalaman",
+            "thumbnail": "URL Thumbnail / Logo",
+            "ended_at": "Tanggal Selesai (Opsional)",
+        }
+
+        widgets = {
+            "title": TextInput(
+                attrs={
+                    "placeholder": "Software Engineer Intern",
+                    "maxlength": 255,
+                    "class": "form-control",
+                }
+            ),
+            "description": Textarea(
+                attrs={
+                    "placeholder": "Deskripsikan tanggung jawab atau kegiatanmu...",
+                    "rows": 3,
+                    "class": "form-control",
+                }
+            ),
+            "category": Select(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "thumbnail": URLInput(
+                attrs={
+                    "placeholder": "https://...",
+                    "class": "form-control",
+                }
+            ),
+            "ended_at": DateTimeInput(
+                attrs={
+                    "type": "datetime-local",
+                    "class": "form-control",
                 }
             ),
         }
