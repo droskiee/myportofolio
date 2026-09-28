@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block meta %}
+    <title>Edit Project - {{ name }}</title>
+{% endblock meta %}
+
+{% block content %}
+<main class="container" style="padding-top: 40px; padding-bottom: 40px;">
+    <div style="max-width: 600px; margin: 0 auto;">
+        <h1 style="margin-bottom: 24px;">Edit Proyek: {{ project.title }}</h1>
+        
+        <form method="POST" class="project-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button type="submit" class="button">Simpan Perubahan</button>
+                <a href="{% url 'main:show_projects' %}" class="button" style="background-color: gray; text-decoration: none;">Batal</a>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock content %}
