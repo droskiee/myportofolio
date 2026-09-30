@@ -75,6 +75,7 @@ def show_projects(request):
     context = {
         "name": "Piedra Ridwan Azra Pulungan",
         "title_query": title_query,
+        "form": ProjectForm(),
     }
     return render(request, "project.html", context)
 
