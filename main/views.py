@@ -69,13 +69,11 @@ def _get_filtered_projects(request):
         projects = projects.filter(title__icontains=title_query)
     return projects, title_query
 
-
 def show_projects(request):
-    projects, title_query = _get_filtered_projects(request)
+    title_query = request.GET.get("title", "").strip()
 
     context = {
         "name": "Piedra Ridwan Azra Pulungan",
-        "project_list": projects,
         "title_query": title_query,
     }
     return render(request, "project.html", context)
