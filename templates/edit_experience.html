@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block meta %}
+    <title>Edit Experience - {{ name }}</title>
+{% endblock meta %}
+
+{% block content %}
+    <main class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <h2 class="fw-bold mb-4">Edit Pengalaman</h2>
+                        
+                        <form method="POST">
+                            {% csrf_token %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Posisi / Peran</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger small mt-1">{{ form.title.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Deskripsi Pekerjaan</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Kategori</label>
+                                {{ form.category }}
+                                {% if form.category.errors %}
+                                    <div class="text-danger small mt-1">{{ form.category.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.thumbnail.id_for_label }}" class="form-label">URL Thumbnail / Logo (Opsional)</label>
+                                {{ form.thumbnail }}
+                                {% if form.thumbnail.errors %}
+                                    <div class="text-danger small mt-1">{{ form.thumbnail.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.ended_at.id_for_label }}" class="form-label">Tanggal Selesai (Opsional)</label>
+                                {{ form.ended_at }}
+                                {% if form.ended_at.errors %}
+                                    <div class="text-danger small mt-1">{{ form.ended_at.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <a href="{% url 'main:show_experience' %}" class="btn btn-secondary">Batal</a>
+                                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock content %}

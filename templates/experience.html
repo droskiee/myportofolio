@@ -5,60 +5,264 @@
 {% endblock meta %}
 
 {% block content %}
-    <main>
+    <main class="container py-5">
         <section class="experience-section" id="experience">
-            <div class="container">
-                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                    <div>
-                        <p class="section-kicker">Perjalanan saya sejauh ini</p>
-                        <h1>Experience</h1>
-                    </div>
-                    <!-- Tombol Tambah Pengalaman -->
-                    <a href="{% url 'main:add_experience' %}" class="btn btn-primary">Tambah Pengalaman Baru</a>
+            <!-- Header Judul dan Tombol Tambah -->
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <div>
+                    <p class="text-muted mb-1" style="font-size: 0.9rem;">Perjalanan saya sejauh ini</p>
+                    <h1 class="fw-bold">Experience</h1>
                 </div>
-
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
+                {% if request.user.is_superuser %}
+                <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addExperienceModal">
+                    + Tambah Pengalaman Baru
+                </button>
                 {% endif %}
+            </div>
 
-                <div class="experience-grid">
-                    {% for experience in experience_list %}
-                        <article class="experience-card">
-                            <span class="experience-category">
-                                {{ experience.get_category_display }}
-                            </span>
-                            <h2>{{ experience.title }}</h2>
-                            <p class="experience-description">
-                                {{ experience.description }}
-                            </p>
+            <!-- Kotak Pencarian dengan Debouncing -->
+            <div class="mb-4">
+                <input type="text" id="searchInput" class="form-control form-control-lg shadow-sm" placeholder="Cari posisi atau deskripsi pengalaman...">
+            </div>
 
-                            {% if experience.is_ongoing %}
-                                <p class="experience-status">Sedang berlangsung</p>
-                            {% else %}
-                                <p class="experience-status">Selesai</p>
-                            {% endif %}
-
-                            <!-- Tombol Edit & Delete -->
-                            <div class="experience-actions mt-3 d-flex gap-2">
-                                <a href="{% url 'main:edit_experience' experience.id %}" class="btn btn-sm btn-outline-warning">Edit</a>
-                                <form action="{% url 'main:delete_experience' experience.id %}" method="POST" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Yakin ingin menghapus pengalaman ini?')">Hapus</button>
-                                </form>
-                            </div>
-                        </article>
-                    {% empty %}
-                        <p class="empty-state">
-                            Belum ada pengalaman yang ditambahkan.
-                        </p>
-                    {% endfor %}
+            <!-- Kontainer Daftar Pengalaman (Render via AJAX & JavaScript) -->
+            <div id="experienceContainer" class="row g-4">
+                <!-- Kondisi Loading Awal -->
+                <div id="loadingState" class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-2">Memuat data pengalaman...</p>
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- Modal Tambah Pengalaman -->
+    <div class="modal fade" id="addExperienceModal" tabindex="-1" aria-labelledby="addExperienceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="addExperienceModalLabel">Tambah Pengalaman Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addExperienceForm" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Posisi / Peran</label>
+                            <input type="text" class="form-control" id="title" name="title" required maxlength="255" placeholder="Software Engineer Intern">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Deskripsi Pekerjaan</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Deskripsikan tanggung jawab atau kegiatanmu..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Kategori</label>
+                            <select class="form-control" id="category" name="category">
+                                <option value="internship">Internship</option>
+                                <option value="research">Research</option>
+                                <option value="volunteer">Volunteer</option>
+                                <option value="part-time">Part-Time</option>
+                                <option value="full-time">Full-Time</option>
+                                <option value="freelance">Freelance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="thumbnail" class="form-label">URL Thumbnail / Logo (Opsional)</label>
+                            <input type="url" class="form-control" id="thumbnail" name="thumbnail" placeholder="https://...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ended_at" class="form-label">Tanggal Selesai (Opsional)</label>
+                            <input type="datetime-local" class="form-control" id="ended_at" name="ended_at">
+                        </div>
+                        <div class="text-end mt-4">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container Toast Notifikasi -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="liveToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header" id="toastHeader">
+                <strong class="me-auto" id="toastTitle">Notifikasi</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Pesan notifikasi di sini.
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript untuk AJAX GET, Debouncing, Modal AJAX POST, XSS Escaping, dan Toast -->
+    <script>
+        // Fungsi XSS Escaping untuk Sisi Klien
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;")
+                              .replace(/</g, "&lt;")
+                              .replace(/>/g, "&gt;")
+                              .replace(/"/g, "&quot;")
+                              .replace(/'/g, "&#039;");
+        }
+
+        // Fungsi Menampilkan Toast
+        function showToast(title, message, isSuccess = true) {
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastHeader = document.getElementById('toastHeader');
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            toastHeader.className = isSuccess ? "toast-header bg-success text-white" : "toast-header bg-danger text-white";
+            
+            const toastElement = document.getElementById('liveToast');
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+
+        // Ambil Data Experience dari Endpoint JSON
+        async function fetchExperiences() {
+            const container = document.getElementById('experienceContainer');
+            try {
+                const response = await fetch("{% url 'main:show_experience_json' %}");
+                if (!response.ok) throw new Error("Gagal memuat data dari server.");
+                const data = await response.json();
+                
+                displayExperiences(data);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5 text-danger">
+                        <p>Terjadi kesalahan saat memuat data: ${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Render Data ke Kartu HTML dengan Proteksi XSS (Escaping)
+        function displayExperiences(items) {
+            const container = document.getElementById('experienceContainer');
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p class="text-muted">Belum ada data pengalaman yang ditambahkan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            items.forEach(item => {
+                const fields = item.fields;
+                const pk = item.pk;
+
+                let categoryDisplay = fields.category;
+                if (fields.category === 'WORK') categoryDisplay = 'Work';
+                else if (fields.category === 'ORG') categoryDisplay = 'Organization';
+                else if (fields.category === 'VOL') categoryDisplay = 'Volunteer';
+
+                const cardHtml = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm border-0">
+                            ${fields.thumbnail ? `<img src="${escapeHtml(fields.thumbnail)}" class="card-img-top" alt="Thumbnail" style="height: 160px; object-fit: cover;">` : ''}
+                            <div class="card-body d-flex flex-column">
+                                <span class="badge bg-secondary mb-2 align-self-start">${escapeHtml(categoryDisplay)}</span>
+                                <h5 class="card-title fw-bold">${escapeHtml(fields.title)}</h5>
+                                <p class="card-text text-muted flex-grow-1">${escapeHtml(fields.description)}</p>
+                                <p class="card-text mb-3"><small class="text-secondary">${!fields.ended_at || new Date(fields.ended_at) > new Date() ? 'Sedang berlangsung' : 'Selesai'}</small></p>
+
+                                {% if request.user.is_superuser %}
+                                <div class="mt-auto d-flex gap-2">
+                                    <a href="/experience/edit/${pk}/" class="btn btn-sm btn-outline-warning">Edit</a>
+                                    <form action="/experience/delete/${pk}/" method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Yakin ingin menghapus pengalaman ini?')">Hapus</button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // Fitur Pencarian dengan Debouncing
+        let debounceTimer;
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            clearTimeout(debounceTimer);
+            const keyword = e.target.value.toLowerCase();
+            
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch("{% url 'main:show_experience_json' %}");
+                    const data = await response.json();
+                    
+                    const filtered = data.filter(item => {
+                        const title = item.fields.title.toLowerCase();
+                        const desc = item.fields.description.toLowerCase();
+                        return title.includes(keyword) || desc.includes(keyword);
+                    });
+                    
+                    displayExperiences(filtered);
+                } catch (err) {
+                    console.error("Gagal melakukan pencarian", err);
+                }
+            }, 400);
+        });
+
+        // Tambah Pengalaman via AJAX POST
+        document.getElementById('addExperienceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch("{% url 'main:add_experience_ajax' %}", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast("Sukses", result.message, true);
+                    
+                    // Tutup modal dengan benar via Bootstrap API
+                    const modalEl = document.getElementById('addExperienceModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.hide();
+                    
+                    // Reset form
+                    this.reset();
+                    
+                    // Refresh daftar pengalaman tanpa reload halaman
+                    fetchExperiences();
+                } else {
+                    let errorMsg = "Terjadi kesalahan validasi.";
+                    if (result.errors) {
+                        errorMsg = Object.values(result.errors).flat().map(err => err.message).join(", ");
+                    } else if (result.message) {
+                        errorMsg = result.message;
+                    }
+                    showToast("Gagal", errorMsg, false);
+                }
+            } catch (err) {
+                showToast("Error", "Gagal terhubung ke server.", false);
+            }
+        });
+
+        // Jalankan fetch saat halaman pertama kali dimuat
+        document.addEventListener("DOMContentLoaded", fetchExperiences);
+    </script>
 {% endblock content %}
