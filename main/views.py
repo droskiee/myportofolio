@@ -130,6 +130,24 @@ def show_experience_json(request):
     data = Experience.objects.all()
     return HttpResponse(serializers.serialize("json", data), content_type="application/json")
 
+@require_POST
+def add_experience_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan pengalaman."},
+            status=403,
+        )
+
+    form = ExperienceForm(request.POST)
+    if form.is_valid():
+        experience = form.save()
+        return JsonResponse(
+            {"message": "Pengalaman berhasil ditambahkan.", "pk": str(experience.pk)},
+            status=201,
+        )
+
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
 
 @login_required(login_url="/login/")
 def add_experience(request):
