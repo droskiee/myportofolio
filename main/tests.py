@@ -42,26 +42,34 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
-        self.assertContains(response, self.experience.title)
-        self.assertContains(response, self.experience.description)
-        self.assertContains(response, "Part-Time")
-        self.assertContains(response, "Sedang berlangsung")
+        self.assertContains(response, 'id="experienceContainer"')
+        self.assertContains(response, 'id="searchInput"')
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
 
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
         response = self.client.get(reverse("main:show_experience"))
 
-        self.assertContains(response, "Belum ada pengalaman yang ditambahkan.")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="experienceContainer"')
+
+        # Menggunakan path langsung ke endpoint JSON
+        json_response = self.client.get("/experience/json/")
+        self.assertEqual(json_response.status_code, 200)
+        self.assertEqual(json_response.json(), [])
 
     def test_completed_experience(self):
         self.experience.ended_at = timezone.now()
         self.experience.save()
-        response = self.client.get(reverse("main:show_experience"))
 
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, "Selesai")
-        self.assertNotContains(response, "Sedang berlangsung")
+
+        # Menggunakan path langsung ke endpoint JSON
+        response = self.client.get("/experience/json/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertIsNotNone(data[0]["fields"]["ended_at"])
 
     def test_skill_model(self):
         self.assertEqual(str(self.skill), "Python")
