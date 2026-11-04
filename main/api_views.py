@@ -7,10 +7,15 @@ from rest_framework.decorators import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from main.models import Project
-from main.permissions import IsPortfolioOwnerOrReadOnly
-from main.serializers import ProjectSerializer
+from main.models import Experience, Project
+from main.permissions import (
+    IsPortfolioOwnerOrEditorOrReadOnly,
+    IsPortfolioOwnerOrReadOnly,
+)
+from main.serializers import ExperienceSerializer, ProjectSerializer
 
+
+# ==================== PROJECT API VIEWS ====================
 
 @api_view(["GET", "HEAD", "POST"])
 @authentication_classes([SessionAuthentication])
@@ -30,6 +35,7 @@ def project_list(request):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
 @authentication_classes([SessionAuthentication])
@@ -54,6 +60,7 @@ def project_detail(request, project_id):
     serializer.save()
     return Response(serializer.data)
 
+
 @api_view(["POST"])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
@@ -64,4 +71,43 @@ def project_star(request, project_id):
     else:
         project.starred_by.add(request.user)
     serializer = ProjectSerializer(project, context={"request": request})
+    return Response(serializer.data)
+
+
+# ==================== EXPERIENCE API VIEWS ====================
+
+@api_view(["GET", "HEAD", "POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
+def experience_list(request):
+    if request.method in ("GET", "HEAD"):
+        experiences = Experience.objects.all()
+        serializer = ExperienceSerializer(experiences, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    serializer = ExperienceSerializer(data=request.data, context={"request": request})
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
+def experience_detail(request, pk):
+    experience = get_object_or_404(Experience, pk=pk)
+    if request.method in ("GET", "HEAD"):
+        serializer = ExperienceSerializer(experience, context={"request": request})
+        return Response(serializer.data)
+
+    if request.method == "DELETE":
+        experience.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ExperienceSerializer(
+        experience, data=request.data, partial=request.method == "PATCH",
+        context={"request": request},
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
     return Response(serializer.data)
