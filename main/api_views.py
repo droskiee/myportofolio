@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -81,7 +82,14 @@ def project_star(request, project_id):
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_list(request):
     if request.method in ("GET", "HEAD"):
-        experiences = Experience.objects.all()
+        experiences = Experience.objects.prefetch_related("stars").all()
+        query = request.query_params.get("q", "").strip() or request.query_params.get("title", "").strip()
+        if query:
+            experiences = experiences.filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(category__icontains=query)
+            )
         serializer = ExperienceSerializer(experiences, many=True, context={"request": request})
         return Response(serializer.data)
 
@@ -95,7 +103,7 @@ def experience_list(request):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_detail(request, pk):
-    experience = get_object_or_404(Experience, pk=pk)
+    experience = get_object_or_404(Experience.objects.prefetch_related("stars"), pk=pk)
     if request.method in ("GET", "HEAD"):
         serializer = ExperienceSerializer(experience, context={"request": request})
         return Response(serializer.data)
@@ -110,4 +118,17 @@ def experience_detail(request, pk):
     )
     serializer.is_valid(raise_exception=True)
     serializer.save()
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def experience_star(request, pk):
+    experience = get_object_or_404(Experience, pk=pk)
+    if experience.stars.filter(pk=request.user.pk).exists():
+        experience.stars.remove(request.user)
+    else:
+        experience.stars.add(request.user)
+    serializer = ExperienceSerializer(experience, context={"request": request})
     return Response(serializer.data)

@@ -43,6 +43,37 @@ class ProjectSerializer(serializers.ModelSerializer):
         return ", ".join(user.username for user in obj.starred_by.all())
 
 class ExperienceSerializer(serializers.ModelSerializer):
+    star_count = serializers.SerializerMethodField()
+    is_starred = serializers.SerializerMethodField()
+    is_ongoing = serializers.ReadOnlyField()
+
     class Meta:
         model = Experience
-        fields = "__all__"
+        fields = [
+            'id',
+            'title',
+            'description',
+            'category',
+            'thumbnail',
+            'started_at',
+            'ended_at',
+            'is_ongoing',
+            'star_count',
+            'is_starred',
+        ]
+        read_only_fields = ['id', 'started_at', 'is_ongoing', 'star_count', 'is_starred']
+
+    def get_star_count(self, obj):
+        return obj.stars.count()
+
+    def get_is_starred(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.stars.filter(id=request.user.id).exists()
+        return False
+
+    def validate_title(self, value):
+        return strip_tags(value).strip()
+
+    def validate_description(self, value):
+        return strip_tags(value).strip()
