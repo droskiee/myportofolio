@@ -38,3 +38,34 @@ test
 2. Penggunaan await berfungsi untuk menunggu hingga proses Promise dari fungsi fetch() selesai sepenuhnya (baik berhasil mengembalikan data maupun gagal) sebelum melanjutkan ke baris eksekusi kode berikutnya. Jika kita tidak menggunakan await (dan tidak menggunakan .then() sebagai alternatifnya), JavaScript akan langsung melanjutkan eksekusi kode di bawahnya secara asinkron tanpa menunggu datanya kembali dari server. Akibatnya, variabel yang menampung hasil fetch akan berisi objek Promise yang masih berstatus pending (belum ada datanya) alih-alih data JSON yang kita harapkan, sehingga data gagal dirender atau menyebabkan error pada aplikasi.
 
 3. XSS adalah jenis kerentanan keamanan di mana penyerang dapat menyisipkan skrip berbahaya (biasanya berupa kode JavaScript atau HTML) ke dalam halaman web yang nantinya akan dilihat oleh pengguna lain. Data yang dimuat melalui AJAX/JavaScript lebih rentan karena proses rendering dilakukan secara dinamis di sisi klien (client-side) dengan menyuntikkan string mentah ke dalam DOM (misalnya melalui innerHTML). Jika data masukan dari pengguna mengandung tag skrip berbahaya dan tidak disaring (sanitized atau di-escape dengan benar), browser akan langsung mengeksekusi skrip tersebut. Sebaliknya, sistem template bawaan Django secara default memiliki mekanisme perlindungan otomatis (auto-escaping) di sisi server untuk mendeteksi dan menetralisir karakter khusus HTML sebelum dikirim ke peramban.
+
+### Tugas 6
+
+1. **REST & RESTful API, serta Perbedaan `PUT` dan `PATCH`:**
+   * **REST (Representational State Transfer):** Gaya arsitektur perancangan web berbasis standar protokol HTTP untuk pertukaran data secara *stateless*.
+   * **Mengapa JSON saja belum cukup:** Mengembalikan data berformat JSON saja tidak otomatis membuat suatu API menjadi *RESTful*. API *RESTful* wajib mematuhi batasan arsitektural REST (*REST constraints*), antara lain: *Client-Server architecture*, *Statelessness* (setiap *request* membawa konteks lengkap), *Cacheability*, serta *Uniform Interface* (penggunaan HTTP Verbs/Methods seperti GET, POST, PUT, PATCH, DELETE secara konsisten, alamat URI/endpoint yang jelas sebagai representasi *resource*, status code HTTP yang tepat, dan penerapan HATEOAS).
+   * **Perbedaan `PUT` vs `PATCH`:**
+     * **`PUT`:** Digunakan untuk mengganti (*replace*) seluruh representasi objek/data target secara penuh. Jika ada bidang data yang tidak dikirimkan dalam *payload*, bidang tersebut akan di-reset ke nilai *default* atau `null`.
+       * *Contoh Penggunaan:* Pembaruan seluruh isi formulir profil pengguna secara menyeluruh.
+     * **`PATCH`:** Digunakan untuk melakukan pembaruan parsial (*partial update*) pada sebagian bidang data objek tanpa memengaruhi atau menghapus bidang data lain yang tidak dicantumkan dalam *payload*.
+       * *Contoh Penggunaan:* Mengubah status atau judul pengalaman kerja tanpa perlu mengirimkan ulang deskripsi dan URL thumbnail-nya.
+
+2. **Peran Serializer pada Django REST Framework (DRF) & Keunggulannya:**
+   * **Peran Serializer:** Berfungsi sebagai penerjemah dua arah (*two-way converter*).
+     * *Serialization:* Mengonversi tipe data kompleks Django (seperti objek *QuerySet* atau *model instances*) menjadi tipe data *native* Python yang kemudian dengan mudah diserialisasi ke format JSON.
+     * *Deserialization & Validation:* Menerima *payload* JSON dari permintaan *client*, memvalidasi kesesuaian tipe data dan aturan keamanan (seperti pembersihan tag HTML via `strip_tags`), serta mengonversinya kembali menjadi *instance* model Django yang siap disimpan ke *database* (`.save()`).
+   * **Keuntungan dibandingkan Merakit Dictionary Manual (`JsonResponse`):**
+     * **Validasi Otomatis & Terstruktur:** Menyediakan skema validasi terintegrasi (`is_valid()`, `validate_<field>`) dan respons kesalahan standar (HTTP `400 Bad Request`) tanpa perlu menulis banyak logika `if-else` manual.
+     * **Integrasi Model Django (`ModelSerializer`):** Otomatis memetakan bidang data model, menangani bidang khusus (*read-only fields*, *computed fields* via `SerializerMethodField`), dan menghemat penulisan kode berulang di setiap *view*.
+
+3. **Perbedaan Autentikasi dan Otorisasi, serta Pentingnya Pemeriksaan di Server:**
+   * **Autentikasi (Authentication):** Proses verifikasi **identitas pengguna** (memastikan *siapa* pengguna tersebut, misalnya mencocokkan *username* dan *password* untuk menentukan apakah `request.user` terdaftar).
+   * **Otorisasi (Authorization):** Proses verifikasi **hak akses/izin pengguna** setelah identitasnya terverifikasi (memastikan *apa* yang boleh dilakukan pengguna tersebut, misalnya mengecek apakah `request.user` memiliki hak akses sebagai `Editor` atau `Superuser`).
+   * **Mengapa Hak Akses Harus Diperiksa dengan *Permission Class* di Server:**
+     * Menyembunyikan tombol di halaman HTML/template frontend hanyalah fitur *User Experience* (UX), bukan sistem keamanan.
+     * Pengguna dapat dengan mudah melewati tampilan frontend dan langsung mengirimkan permintaan HTTP mutasi (seperti `POST`, `PUT`, `DELETE`) langsung ke *endpoint* API menggunakan alat seperti Postman, cURL, atau via *Console DevTools*.
+     * Tanpa adanya *Permission Class* (seperti `IsPortfolioOwnerOrEditorOrReadOnly`) di server backend, server akan tetap mengeksekusi permintaan berbahaya tersebut. Oleh karena itu, pemeriksaan hak akses wajib ditegakkan di sisi server.
+
+4. **Kebutuhan Token CSRF pada `SessionAuthentication` & Kelemahan `force_authenticate`:**
+   * **Kebutuhan Token CSRF pada `SessionAuthentication`:** `SessionAuthentication` mengandalkan *cookie* sesi HTTP (`sessionid`) yang disimpan oleh peramban. Peramban akan selalu menyertakan *cookie* tersebut secara otomatis pada setiap permintaan yang ditujukan ke domain server, termasuk permintaan yang dipicu oleh situs pihak ketiga (*Cross-Site Request Forgery*). Jika pengguna sedang masuk di situs portofolio lalu membuka situs berbahaya, situs berbahaya tersebut dapat mengirimkan *request* perubahan data ke API portofolio dan *cookie* sesi akan ikut terkirim secara otomatis. Token CSRF (`X-CSRFToken`) diperlukan untuk membuktikan bahwa permintaan mutasi data benar-benar berasal dari antarmuka halaman resmi portofolio kamu, bukan dari situs lain.
+   * **Kelemahan `force_authenticate` dalam Testing:** Metode `force_authenticate` pada `APITestCase` hanya menyimulasikan pengguna yang sudah masuk dengan secara langsung menyetel `request.user`, tetapi **secara sengaja mengabaikan (*bypass*) pemeriksaan token CSRF dan pengujian sesi cookie**. Oleh karena itu, pengujian menggunakan `force_authenticate` tidak dapat membuktikan apakah proteksi CSRF di server sudah aktif atau belum. Untuk membuktikan perlindungan CSRF berjalan dengan benar, pengujian wajib menggunakan `APIClient(enforce_csrf_checks=True)` yang dikombinasikan dengan metode `.login()` asli.
